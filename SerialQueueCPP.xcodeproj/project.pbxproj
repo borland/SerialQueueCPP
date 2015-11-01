@@ -7,7 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D38EC92A1BE67F1C00ABB7A3 /* PlatformThreadPool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D38EC9291BE67F1C00ABB7A3 /* PlatformThreadPool.cpp */; };
+		D38EC92C1BE6845000ABB7A3 /* Disposable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D38EC92B1BE6845000ABB7A3 /* Disposable.cpp */; };
 		D3F51FB91BE53D3300988875 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D3F51FB81BE53D3300988875 /* main.cpp */; };
+		D3F51FC11BE53D6100988875 /* SerialQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D3F51FBF1BE53D6100988875 /* SerialQueue.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -23,8 +26,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D38EC9281BE6796800ABB7A3 /* Interfaces.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Interfaces.hpp; sourceTree = "<group>"; };
+		D38EC9291BE67F1C00ABB7A3 /* PlatformThreadPool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PlatformThreadPool.cpp; sourceTree = "<group>"; };
+		D38EC92B1BE6845000ABB7A3 /* Disposable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Disposable.cpp; sourceTree = "<group>"; };
 		D3F51FB51BE53D3300988875 /* SerialQueueCPP */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SerialQueueCPP; sourceTree = BUILT_PRODUCTS_DIR; };
 		D3F51FB81BE53D3300988875 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		D3F51FBF1BE53D6100988875 /* SerialQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SerialQueue.cpp; sourceTree = "<group>"; };
+		D3F51FC01BE53D6100988875 /* SerialQueue.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = SerialQueue.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +66,11 @@
 			isa = PBXGroup;
 			children = (
 				D3F51FB81BE53D3300988875 /* main.cpp */,
+				D3F51FBF1BE53D6100988875 /* SerialQueue.cpp */,
+				D3F51FC01BE53D6100988875 /* SerialQueue.hpp */,
+				D38EC9281BE6796800ABB7A3 /* Interfaces.hpp */,
+				D38EC9291BE67F1C00ABB7A3 /* PlatformThreadPool.cpp */,
+				D38EC92B1BE6845000ABB7A3 /* Disposable.cpp */,
 			);
 			path = SerialQueueCPP;
 			sourceTree = "<group>";
@@ -118,7 +131,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D38EC92A1BE67F1C00ABB7A3 /* PlatformThreadPool.cpp in Sources */,
+				D38EC92C1BE6845000ABB7A3 /* Disposable.cpp in Sources */,
 				D3F51FB91BE53D3300988875 /* main.cpp in Sources */,
+				D3F51FC11BE53D6100988875 /* SerialQueue.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,6 +253,7 @@
 				D3F51FBE1BE53D3300988875 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
