@@ -10,21 +10,34 @@
 #define SerialQueue_hpp
 
 #include "Interfaces.hpp"
-#include <stack>
+#include <queue>
 #include <memory>
 #include <mutex>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
+#include <sys/syscall.h>
 
-class SerialQueueImpl;
-
-// ref-counting wrapper object so you can treat a SerialQueue as a pass-by-value object
-class SerialQueue : public IDispatchQueue {
-    std::shared_ptr<SerialQueueImpl> m_sptr;
-    
+// this is a nasty hack because xcode doesn't have thread_local
+// it's entirely not needed on windows or linux
+// it's only here so I can develop on my mac (which doesn't need SerialQueue anyway, just use GCD)
+template<typename T> class thread_local_value {
+    std::unordered_map<uint64_t, T> m_storage;
+    std::mutex m_mtx;
 public:
-    SerialQueue();
-    // copy, move, assignment constructors and operators all implicitly defined
+    T* operator->() {
+        return get();
+    };
+    
+    T* get() {
+        std::lock_guard<std::mutex> guard(m_mtx);
+        return &m_storage[SYS_thread_selfid];
+    }
+    
+    void clear() {
+        std::lock_guard<std::mutex> guard(m_mtx);
+        m_storage.erase(SYS_thread_selfid);
+    }
 };
 
 class SerialQueueImpl :
@@ -40,7 +53,7 @@ protected:
         Processing
     };
 
-    static thread_local std::stack<IDispatchQueue> s_queueStack;
+    static thread_local_value<std::deque<SerialQueueImpl*>> s_queueStack;
     
     const std::shared_ptr<IThreadPool> m_threadPool;
     
@@ -91,5 +104,15 @@ public:
     /// ObjectDisposedException</summary>
     void Dispose() override;
 };
+
+// ref-counting wrapper object so you can treat a SerialQueue as a pass-by-value object
+class SerialQueue : public IDispatchQueue {
+    std::shared_ptr<SerialQueueImpl> m_sptr;
+    
+public:
+    SerialQueue();
+    // copy, move, assignment constructors and operators all implicitly defined
+};
+
 
 #endif /* SerialQueue_hpp */

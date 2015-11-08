@@ -28,19 +28,19 @@ class SharedDisposable : public IDisposable {
     
     const std::shared_ptr<IDisposable> m_impl;
     SharedDisposable(std::shared_ptr<IDisposable> impl);
+    
+    friend class AnonymousDisposable;
 public:
     void Dispose() override;
 };
 
-class AnonymousDisposable : IDisposable {
+class AnonymousDisposable : public IDisposable {
     std::function<void()> m_action;
     
     AnonymousDisposable(std::function<void()> action);
     
     AnonymousDisposable(const AnonymousDisposable& other) = delete;
     AnonymousDisposable& operator=(const AnonymousDisposable& other) = delete;
-    
-    friend 
     
 public:
     // implicit new/move constructor are used

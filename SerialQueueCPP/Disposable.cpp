@@ -20,7 +20,8 @@ AnonymousDisposable::AnonymousDisposable(std::function<void()> action)
 : m_action(move(action)) {}
 
 SharedDisposable AnonymousDisposable::CreateShared(std::function<void()> action) {
-    shared_ptr<IDisposable> sptr = make_shared<AnonymousDisposable>(action);
+    shared_ptr<IDisposable> sptr(new AnonymousDisposable(action));
+    return sptr;
 }
 
 void AnonymousDisposable::Dispose() {
