@@ -10,6 +10,8 @@
 #include <cassert>
 using namespace std;
 
+SharedDisposable::SharedDisposable(std::shared_ptr<IDisposable> impl)
+: m_impl(move(impl)) { }
 
 void SharedDisposable::Dispose() {
     assert(m_impl != nullptr);

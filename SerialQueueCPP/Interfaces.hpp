@@ -56,7 +56,7 @@ struct IDispatchQueue {
     
     //    virtual IDisposable DispatchAfter(std::chrono::milliseconds delay, std::function<void()> action) = 0;
     
-    virtual void VerifyQueue();
+    virtual void VerifyQueue() = 0;
 };
 
 struct IThreadPool {

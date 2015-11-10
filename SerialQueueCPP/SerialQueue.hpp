@@ -46,6 +46,17 @@ public IDisposable,
 public std::enable_shared_from_this<SerialQueueImpl> {
 protected:
     typedef std::function<void()> Action;
+    struct TaggedAction{
+        static std::atomic<unsigned int> s_lastActionTag;
+        Action action;
+        unsigned int tag;
+        
+        TaggedAction(Action act);
+        
+        bool operator==(const TaggedAction& other) const noexcept;
+        bool operator!=(const TaggedAction& other) const noexcept;
+        void operator()();
+    };
         
     enum class AsyncState {
         Idle = 0,
@@ -61,10 +72,12 @@ protected:
     std::mutex m_schedulerLock; // acquire this before adding any async/timer actions
     std::mutex m_executionLock; // acquire this before doing dispatchSync
     
-    std::vector<Action> m_asyncActions; // aqcuire m_schedulerLock
-    std::unordered_set<IDisposable> m_timers; // acquire m_schedulerLock
+    std::vector<TaggedAction> m_asyncActions; // aqcuire m_schedulerLock
     volatile AsyncState m_asyncState = AsyncState::Idle; // acquire m_schedulerLock
     bool m_isDisposed = false; // acquire m_schedulerLock
+    
+    // m_timers is needed for DispatchAfter
+    //    std::unordered_set<IDisposable> m_timers; // acquire m_schedulerLock
 
     /// <summary>Internal function which runs on the threadpool to execute the actual async actions</summary>
     virtual void ProcessAsync();

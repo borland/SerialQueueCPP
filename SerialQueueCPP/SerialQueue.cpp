@@ -28,6 +28,26 @@ template <typename T>
 scope_exit<T> create_scope_exit(T&& exitScope)
 { return scope_exit<T>(std::forward<T>(exitScope)); }
 
+// ----- TaggedAction class -----
+
+atomic<unsigned int> SerialQueueImpl::TaggedAction::s_lastActionTag;
+
+SerialQueueImpl::TaggedAction::TaggedAction(Action act) : tag(++s_lastActionTag), action(std::move(act)) { }
+
+bool SerialQueueImpl::TaggedAction::operator==(const TaggedAction& other) const noexcept {
+    return tag == other.tag;
+}
+bool SerialQueueImpl::TaggedAction::operator!=(const TaggedAction& other) const noexcept {
+    return !(*this == other);
+}
+void SerialQueueImpl::TaggedAction::operator()(){
+    action();
+}
+
+// ----- SerialQueueImpl class -----
+
+thread_local_value<std::deque<SerialQueueImpl*>> SerialQueueImpl::s_queueStack;
+
 SerialQueueImpl::SerialQueueImpl(shared_ptr<IThreadPool> threadpool)
 : m_threadPool(threadpool)
 {
@@ -124,7 +144,8 @@ void SerialQueueImpl::ProcessAsync()
 
 void SerialQueueImpl::DispatchSync(Action action)
 {
-    auto prevStack = &s_queueStack->get(); // there might be a more optimal way of doing this, it seems to be fast enough
+// copy the stack; might be a more optimal way of doing this, it seems to be fast enough
+    vector<SerialQueueImpl*> prevStack(s_queueStack->begin(), s_queueStack->end());
     s_queueStack->push_back(this);
     
     bool schedulerLockTaken = false;
@@ -141,7 +162,7 @@ void SerialQueueImpl::DispatchSync(Action action)
     if (m_isDisposed)
         throw logic_error("Cannot call DispatchSync on a disposed queue");
     
-    if(m_asyncState == AsyncState::Idle || prevStack.find(this) != prevStack.end()) // either queue is empty or it's a nested call
+    if(m_asyncState == AsyncState::Idle || find(prevStack.begin(), prevStack.end(), this) != prevStack.end()) // either queue is empty or it's a nested call
     {
         m_schedulerLock.unlock();
         schedulerLockTaken = false;
@@ -154,25 +175,26 @@ void SerialQueueImpl::DispatchSync(Action action)
     
     // if there is any async stuff scheduled we must also schedule
     // else m_asyncState == AsyncState.Scheduled, OR we fell through from Processing
-    var asyncReady = new ManualResetEvent(false);
-    var syncDone = new ManualResetEvent(false);
-    DispatchAsync(() => {
-        asyncReady.Set();
-        syncDone.WaitOne();
+    condition_variable asyncReady;
+    condition_variable syncDone;
+    mutex syncMutex;
+    
+    DispatchAsync([&]{
+        asyncReady.notify_one();
+        unique_lock<mutex> lock(syncMutex);
+        syncDone.wait(lock);
     });
     
-    m_schedulerLock.unlock()
+    m_schedulerLock.unlock();
     schedulerLockTaken = false;
     
-    try
-    {
-        asyncReady.WaitOne();
-        action(); // DO NOT CATCH EXCEPTIONS. We're excuting synchronously so just let it throw
-    }
-    finally
-    {
-        syncDone.Set(); // tell the dispatchAsync it can release the lock
-    }
+    auto finally2 = create_scope_exit([&]{
+        unique_lock<mutex> lock(syncMutex);
+        syncDone.notify_one(); // tell the dispatchAsync it can release the lock
+    });
+    unique_lock<mutex> lock(syncMutex);
+    syncDone.wait(lock);
+    action(); // DO NOT CATCH EXCEPTIONS. We're excuting synchronously so just let it throw
 }
 
 
@@ -181,20 +203,21 @@ void SerialQueueImpl::DispatchSync(Action action)
 /// <param name="disposing">true if called via Dispose(), false if called via a Finalizer.</param>
 void SerialQueueImpl::Dispose()
 {
-    IDisposable[] timers;
-    lock (m_schedulerLock)
-    {
+//    vector<IDisposable> timers;
+//    {
+        lock_guard<mutex> lock(m_schedulerLock);
         if (m_isDisposed)
             return; // double-dispose
         
         m_isDisposed = true;
-        m_asyncActions.Clear();
+        m_asyncActions.clear();
         
-        timers = m_timers.ToArray();
-        m_timers.Clear();
-    }
-    foreach (var t in timers)
-    t.Dispose();
+//        timers = m_timers;
+//        m_timers.clear();
+//    }
+//    for(auto& t : timers) {
+//        t.Dispose();
+//    }
 }
 
 /// <summary>Schedules the given action to run asynchronously on the queue after dueTime.</summary>
