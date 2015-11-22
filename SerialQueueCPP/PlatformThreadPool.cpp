@@ -6,7 +6,7 @@
 //  Copyright © 2015 Orion Edwards. All rights reserved.
 //
 
-#include "Interfaces.hpp"
+#include "SerialQueue.hpp"
 
 /*static*/ std::shared_ptr<IThreadPool> PlatformThreadPool::Default() {
     return {};

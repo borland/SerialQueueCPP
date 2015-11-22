@@ -44,6 +44,27 @@ void SerialQueueImpl::TaggedAction::operator()(){
     action();
 }
 
+// ----- SerialQueue wrapper class -----
+
+SerialQueue::SerialQueue(shared_ptr<IThreadPool> threadpool)
+    : m_sptr(make_shared<SerialQueueImpl>(threadpool))
+{ }
+
+void SerialQueue::DispatchSync(std::function<void ()> action) {
+    assert(m_sptr);
+    m_sptr->DispatchSync(move(action));
+}
+
+IDisposable SerialQueue::DispatchAsync(std::function<void ()> action ) {
+    assert(m_sptr);
+    return DispatchAsync(move(action));
+}
+
+void SerialQueue::VerifyQueue() {
+    assert(m_sptr);
+    m_sptr->VerifyQueue();
+}
+
 // ----- SerialQueueImpl class -----
 
 thread_local_value<std::deque<SerialQueueImpl*>> SerialQueueImpl::s_queueStack;
@@ -266,3 +287,26 @@ void SerialQueueImpl::Dispose()
 //            }
 //        });
 //    }
+
+// ----- SharedDisposable -----
+
+SharedDisposable::SharedDisposable(std::shared_ptr<IDisposable> impl)
+: m_impl(move(impl)) { }
+
+void SharedDisposable::Dispose() {
+    assert(m_impl != nullptr);
+    m_impl->Dispose();
+}
+
+AnonymousDisposable::AnonymousDisposable(std::function<void()> action)
+: m_action(move(action)) {}
+
+SharedDisposable AnonymousDisposable::CreateShared(std::function<void()> action) {
+    shared_ptr<IDisposable> sptr(new AnonymousDisposable(action));
+    return sptr;
+}
+
+void AnonymousDisposable::Dispose() {
+    
+}
+

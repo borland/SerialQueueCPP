@@ -9,7 +9,6 @@
 #ifndef SerialQueue_hpp
 #define SerialQueue_hpp
 
-#include "Interfaces.hpp"
 #include <queue>
 #include <memory>
 #include <mutex>
@@ -17,6 +16,69 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <sys/syscall.h>
+
+// ----- Interfaces -----
+
+
+struct IDisposable {
+    virtual void Dispose() = 0;
+};
+
+// refcounting wrapper (using shared ptr) over another kind of disposable
+class SharedDisposable : public IDisposable {
+    template<typename TDisposable>
+    struct SharedDisposableImpl : public IDisposable {
+        TDisposable InnerDisposable;
+        void Dispose() override {
+            InnerDisposable.Dispose();
+        }
+    };
+    
+    const std::shared_ptr<IDisposable> m_impl;
+    SharedDisposable(std::shared_ptr<IDisposable> impl);
+    
+    friend class AnonymousDisposable;
+public:
+    void Dispose() override;
+};
+
+class AnonymousDisposable : public IDisposable {
+    std::function<void()> m_action;
+    
+    AnonymousDisposable(std::function<void()> action);
+    
+    AnonymousDisposable(const AnonymousDisposable& other) = delete;
+    AnonymousDisposable& operator=(const AnonymousDisposable& other) = delete;
+    
+public:
+    // implicit new/move constructor are used
+    
+    static SharedDisposable CreateShared(std::function<void()> action);
+    void Dispose() override;
+};
+
+struct IDispatchQueue {
+    virtual IDisposable DispatchAsync(std::function<void()> action) = 0;
+    
+    virtual void DispatchSync(std::function<void()> action) = 0;
+    
+    //    virtual IDisposable DispatchAfter(std::chrono::milliseconds delay, std::function<void()> action) = 0;
+    
+    virtual void VerifyQueue() = 0;
+};
+
+struct IThreadPool {
+    virtual void QueueWorkItem(std::function<void()> action) = 0;
+    
+    //    virtual IDisposable Schedule(std::chrono::milliseconds delay, std::function<void()> action) = 0 ;
+};
+
+struct PlatformThreadPool : public IThreadPool {
+    static std::shared_ptr<IThreadPool> Default();
+};
+
+
+// ----- SerialQueue -----
 
 // this is a nasty hack because xcode doesn't have thread_local
 // it's entirely not needed on windows or linux
@@ -119,12 +181,21 @@ public:
 };
 
 // ref-counting wrapper object so you can treat a SerialQueue as a pass-by-value object
-class SerialQueue : public IDispatchQueue {
+class SerialQueue final : public IDispatchQueue {
     std::shared_ptr<SerialQueueImpl> m_sptr;
     
 public:
-    SerialQueue();
+    SerialQueue(std::shared_ptr<IThreadPool> threadPool = PlatformThreadPool::Default());
     // copy, move, assignment constructors and operators all implicitly defined
+    
+    IDisposable DispatchAsync(std::function<void()> action) override;
+    
+    void DispatchSync(std::function<void()> action) override;
+    
+    //    virtual IDisposable DispatchAfter(std::chrono::milliseconds delay, std::function<void()> action) = 0;
+    
+    // throws std::logic_error if we call it from the wrong queue
+    void VerifyQueue() override;
 };
 
 
